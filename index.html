@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overprint</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23f2eadb%27/%3E%3Ccircle cx=%2713%27 cy=%2713%27 r=%279%27 fill=%27%23ff665e%27/%3E%3Ccircle cx=%2720%27 cy=%2720%27 r=%279%27 fill=%27%233d5588%27 opacity=%27.85%27/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+
+<header class="bar">
+  <div class="mark">
+    <svg width="17" height="17" viewBox="0 0 17 17" aria-hidden="true">
+      <circle cx="6" cy="6" r="5" fill="#ff665e"/>
+      <circle cx="11" cy="11" r="5" fill="#3d5588" style="mix-blend-mode:multiply"/>
+    </svg>
+    <span>overprint</span>
+  </div>
+
+  <div class="seg" id="modeSeg" role="tablist" aria-label="Control detail">
+    <button role="tab" data-mode="simple">Simple</button>
+    <button role="tab" data-mode="custom" class="on">Customize</button>
+  </div>
+
+  <div class="seg views" id="viewSeg" role="tablist" aria-label="Proof view">
+    <button role="tab" data-view="print" class="on">Print</button>
+    <button role="tab" data-view="separation">Separation</button>
+    <button role="tab" data-view="screens">Screens</button>
+    <button role="tab" data-view="photo">Photo</button>
+  </div>
+
+  <div class="bar-end">
+    <button class="btn" id="shuffleBtn" title="New colours, screen and frame (R)">Shuffle</button>
+    <button class="btn primary" id="exportBtn">Export</button>
+  </div>
+</header>
+
+<main>
+  <section class="bed" id="bed">
+    <div class="stage" id="stage">
+      <canvas id="view"></canvas>
+    </div>
+
+    <div class="empty" id="empty">
+      <p class="empty-lead">Drop a photo to print it</p>
+      <p class="empty-sub">Overprint separates it into spot inks, screens each one, and lays them down on paper.</p>
+      <div class="empty-acts">
+        <button class="btn primary" id="chooseBtn">Choose a photo</button>
+        <button class="btn" id="sampleBtn">Use a test image</button>
+      </div>
+    </div>
+
+    <div class="bed-foot">
+      <span id="statSize">—</span>
+      <span id="statInks">—</span>
+      <span id="statScreen">—</span>
+      <span class="grow"></span>
+      <span class="surround" id="surroundSeg">
+        <button data-bg="dark" class="on" title="Dark surround"></button>
+        <button data-bg="gray" title="Neutral gray surround"></button>
+        <button data-bg="white" title="White surround"></button>
+      </span>
+    </div>
+  </section>
+
+  <aside class="rail" id="rail">
+    <div class="rail-scroll" id="railScroll"></div>
+  </aside>
+</main>
+
+<input type="file" id="fileInput" accept="image/*" hidden>
+
+<div class="popover" id="popover" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+<script type="module" src="src/app.js"></script>
+</body>
+</html>
