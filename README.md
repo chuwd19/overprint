@@ -10,8 +10,8 @@
 
 <table>
 <tr>
-<td width="50%" valign="top"><img src="docs/images/source.jpg" alt="Hokusai's The Great Wave, the original scan"><br><sub><b>The original.</b> Hokusai, <i>Under the Wave off Kanagawa</i>, ca. 1830–32.</sub></td>
-<td width="50%" valign="top"><img src="docs/images/hero.jpg" alt="The same image printed in blue, sunflower and mint halftone inks"><br><sub><b>Printed.</b> Three inks — Medium Blue, Sunflower, Mint — each screened at its own angle onto natural stock.</sub></td>
+<td width="50%" valign="top"><img src="docs/images/source.jpg" alt="Photograph of Grand Prismatic Spring, Yellowstone"><br><sub><b>The photograph.</b> Grand Prismatic Spring, Yellowstone — continuous tone, thousands of colours.</sub></td>
+<td width="50%" valign="top"><img src="docs/images/hero.jpg" alt="The same photograph printed in black, blue and orange halftone inks"><br><sub><b>Printed.</b> Three inks — Black, Blue, Orange — each screened at its own angle onto natural stock.</sub></td>
 </tr>
 </table>
 
@@ -31,13 +31,13 @@ your photo is decoded and drawn entirely in your own browser.
 > [`docs/images/source.jpg`](docs/images/source.jpg). Open the app, drop that file on the
 > sheet, and pick the matching preset.
 
-## Seven treatments of one image
+## Six treatments of one photograph
 
 <table>
 <tr>
-<td width="33%" valign="top"><img src="docs/images/two-colour.jpg" alt="Two-colour poster"><br><b>Two-colour poster</b><br><sub>Steel + Sunflower on natural stock, 34 lpi round dot. Auto-pick chose the pair.</sub></td>
-<td width="33%" valign="top"><img src="docs/images/newsprint.jpg" alt="Newsprint mono"><br><b>Newsprint mono</b><br><sub>One black ink at 42 lpi on newsprint, tone curve pushed for contrast.</sub></td>
-<td width="33%" valign="top"><img src="docs/images/fluoro.jpg" alt="Fluoro zine"><br><b>Fluoro zine</b><br><sub>Fluorescent pink + blue, grain screen instead of dots, registration deliberately loose.</sub></td>
+<td width="33%" valign="top"><img src="docs/images/autopick.jpg" alt="Auto-picked inks"><br><b>What Auto-pick chose</b><br><sub>Left to itself the app picked Blue + Fluorescent Pink + Yellow — a process-like triad. Note the lavender cast on the mineral flats: three inks can't reach every colour, and it spends the error on hue rather than tone.</sub></td>
+<td width="33%" valign="top"><img src="docs/images/two-colour.jpg" alt="Two-colour poster"><br><b>Two-colour poster</b><br><sub>Blue + Scarlet on natural stock, 34 lpi round dot. Two inks, and the pool still separates cleanly from the mats.</sub></td>
+<td width="33%" valign="top"><img src="docs/images/fluoro.jpg" alt="Fluoro zine"><br><b>Fluoro zine</b><br><sub>Fluorescent pink + blue through a grain screen instead of dots, registration deliberately loose.</sub></td>
 </tr>
 <tr>
 <td width="33%" valign="top"><img src="docs/images/kraft.jpg" alt="Kraft duotone"><br><b>Kraft duotone</b><br><sub>Black + Sunflower on kraft, diamond screen, hand-cut edge. Dark paper means highlights can only ever be paper.</sub></td>
@@ -55,12 +55,12 @@ stages a press goes through.
 
 <img src="docs/images/stage-photo.jpg" width="420" alt="The source image">
 
-**2. Separation** — the photo resolved into one film per ink: how much blue, how much
-sunflower, how much mint belongs at each point. Continuous tone, no dots yet. Look at what
-each film ended up carrying — blue took the wave and its outlines, sunflower took the sky
-and the warmth of the paper, mint took the foam and the mid-tones.
+**2. Separation** — the photo resolved into one film per ink: how much black, how much
+blue, how much orange belongs at each point. Continuous tone, no dots yet. Look at what
+each film ended up carrying — black took the dark mineral structure and the boardwalk,
+blue took the pool, orange took the bacterial mats with the pool knocked out of it.
 
-<img src="docs/images/stage-separation.jpg" width="860" alt="Three continuous-tone ink films: blue, sunflower, mint">
+<img src="docs/images/stage-separation.jpg" width="860" alt="Three continuous-tone ink films: black, blue, orange">
 
 **3. Screening** — each film broken into dots. Every ink gets its own frequency, angle and
 dot shape, which is what stops the three screens landing on top of each other and turning
@@ -70,13 +70,13 @@ into a muddy moiré.
 
 **4. Overprint** — the screened films printed onto the paper in order, each shifted a
 fraction against the last. Where dots overlap you get colours that aren't in any single
-ink; the wave's deep indigo is blue and mint landing together.
+ink; the green rim around the pool is blue and orange landing together.
 
 <img src="docs/images/stage-print.jpg" width="420" alt="The finished three-colour print">
 
 ## Screens
 
-Five ways of breaking a tone into marks, shown on the wave's crest at 22 lpi in a single
+Five ways of breaking a tone into marks, shown on the pool's edge at 22 lpi in a single
 black ink. The first four are *amplitude* screens — a regular grid where the marks grow
 and shrink. The last is *frequency* — same-sized specks, scattered more densely in the
 shadows.
@@ -192,7 +192,8 @@ Riso-like colours rather than a full swatch book.
 Built after Apple's [tone](https://apps.apple.com/us/app/tone-photos-printed/id6792391699),
 which does the same job on iOS and is worth your money if you're on a phone.
 
-The demo image is Katsushika Hokusai's *Under the Wave off Kanagawa* (*The Great Wave*),
-ca. 1830–32, from [The Metropolitan Museum of Art](https://www.metmuseum.org/art/collection/search/36491),
-which releases it as public domain under CC0. It seemed a fitting thing to put through a
-printing press.
+The demo photograph is Grand Prismatic Spring, Yellowstone National Park, by Jim Peaco
+for the [National Park Service](https://commons.wikimedia.org/wiki/File:Grand_prismatic_spring.jpg).
+As a work of the US government it is in the public domain. It was picked because it is an
+ordinary photograph that happens to run the whole way from deep blue through cyan, green
+and yellow to rust — which is exactly the kind of thing a three-ink press has to fight.
