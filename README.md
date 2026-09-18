@@ -187,6 +187,10 @@ colour maths for yourself.
 Crop marks, bleed and true-size imposition; saving your own presets. The ink library is 26
 Riso-like colours rather than a full swatch book.
 
+## Licence
+
+MIT — see [LICENSE](LICENSE). The demo photograph is public domain (see Credits).
+
 ## Credits
 
 Built after Apple's [tone](https://apps.apple.com/us/app/tone-photos-printed/id6792391699),
