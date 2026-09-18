@@ -6,11 +6,14 @@
 
 [**Try it live →**](https://chuwd19.github.io/overprint/)
 
-<img src="docs/images/hero.jpg" width="620" alt="A sphere on a teal backdrop, printed in blue, fluorescent pink and yellow halftone dots on natural paper">
-
 </div>
 
----
+<table>
+<tr>
+<td width="50%" valign="top"><img src="docs/images/source.jpg" alt="Hokusai's The Great Wave, the original scan"><br><sub><b>The original.</b> Hokusai, <i>Under the Wave off Kanagawa</i>, ca. 1830–32.</sub></td>
+<td width="50%" valign="top"><img src="docs/images/hero.jpg" alt="The same image printed in blue, sunflower and mint halftone inks"><br><sub><b>Printed.</b> Three inks — Medium Blue, Sunflower, Mint — each screened at its own angle onto natural stock.</sub></td>
+</tr>
+</table>
 
 Overprint doesn't lay a dot filter over your photo. It does roughly what a print shop
 does: pick a handful of spot inks, work out how much of each one belongs at every point
@@ -24,20 +27,20 @@ quite reach, and paper grain showing through the highlights.
 It's a single static page. No build step, no dependencies, no server, nothing uploaded —
 your photo is decoded and drawn entirely in your own browser.
 
-## Six treatments of one photo
+> **Reproduce any picture on this page.** The source image is in this repo at
+> [`docs/images/source.jpg`](docs/images/source.jpg). Open the app, drop that file on the
+> sheet, and pick the matching preset.
 
-Every picture on this page came from the test image built into the app, so you can
-reproduce all of them without supplying a photo of your own. Click **Use a test image**,
-then pick a preset.
+## Seven treatments of one image
 
 <table>
 <tr>
-<td width="33%" valign="top"><img src="docs/images/two-colour.jpg" alt="Two-colour poster"><br><b>Two-colour poster</b><br><sub>Black + Red on natural stock, 34 lpi round dot. The everyday riso look.</sub></td>
-<td width="33%" valign="top"><img src="docs/images/newsprint.jpg" alt="Newsprint mono"><br><b>Newsprint mono</b><br><sub>One black ink at 42 lpi on newsprint, with the tone curve pushed for contrast.</sub></td>
+<td width="33%" valign="top"><img src="docs/images/two-colour.jpg" alt="Two-colour poster"><br><b>Two-colour poster</b><br><sub>Steel + Sunflower on natural stock, 34 lpi round dot. Auto-pick chose the pair.</sub></td>
+<td width="33%" valign="top"><img src="docs/images/newsprint.jpg" alt="Newsprint mono"><br><b>Newsprint mono</b><br><sub>One black ink at 42 lpi on newsprint, tone curve pushed for contrast.</sub></td>
 <td width="33%" valign="top"><img src="docs/images/fluoro.jpg" alt="Fluoro zine"><br><b>Fluoro zine</b><br><sub>Fluorescent pink + blue, grain screen instead of dots, registration deliberately loose.</sub></td>
 </tr>
 <tr>
-<td width="33%" valign="top"><img src="docs/images/kraft.jpg" alt="Kraft duotone"><br><b>Kraft duotone</b><br><sub>Black + Sunflower on kraft. Dark paper means highlights can only ever be paper.</sub></td>
+<td width="33%" valign="top"><img src="docs/images/kraft.jpg" alt="Kraft duotone"><br><b>Kraft duotone</b><br><sub>Black + Sunflower on kraft, diamond screen, hand-cut edge. Dark paper means highlights can only ever be paper.</sub></td>
 <td width="33%" valign="top"><img src="docs/images/coarse.jpg" alt="Coarse dot"><br><b>Coarse dot</b><br><sub>A single ink at 14 lpi. Big enough that you read the dots before the picture.</sub></td>
 <td width="33%" valign="top"><img src="docs/images/line.jpg" alt="Line screen"><br><b>Line screen</b><br><sub>Steel + Crimson through a 40 lpi line screen, each ink at its own angle.</sub></td>
 </tr>
@@ -45,36 +48,38 @@ then pick a preset.
 
 ## How a print is made
 
-The app will show you its own working. The four buttons at the top of the window step
-through the same stages a press goes through.
+The app shows you its own working. The buttons along the top step through the same
+stages a press goes through.
 
-**1. The photo.** Whatever you dropped in, with exposure, contrast and saturation applied.
+**1. The photo** — whatever you dropped in, with exposure, contrast and saturation applied.
 
-<img src="docs/images/stage-photo.jpg" width="300" alt="The source photograph">
+<img src="docs/images/stage-photo.jpg" width="420" alt="The source image">
 
-**2. Separation.** The photo is resolved into one film per ink — how much blue, how much
-pink, how much yellow belongs at each point. These are continuous tones, no dots yet.
-Notice that the blue film carries the backdrop while pink and yellow carry the sphere.
+**2. Separation** — the photo resolved into one film per ink: how much blue, how much
+sunflower, how much mint belongs at each point. Continuous tone, no dots yet. Look at what
+each film ended up carrying — blue took the wave and its outlines, sunflower took the sky
+and the warmth of the paper, mint took the foam and the mid-tones.
 
-<img src="docs/images/stage-separation.jpg" width="820" alt="Three continuous-tone ink films: blue, fluorescent pink, yellow">
+<img src="docs/images/stage-separation.jpg" width="860" alt="Three continuous-tone ink films: blue, sunflower, mint">
 
-**3. Screening.** Each film is broken into dots. Every ink gets its own frequency, angle
-and dot shape — that's what stops the three screens from landing on top of each other and
-turning into a muddy moiré.
+**3. Screening** — each film broken into dots. Every ink gets its own frequency, angle and
+dot shape, which is what stops the three screens landing on top of each other and turning
+into a muddy moiré.
 
-<img src="docs/images/stage-screens.jpg" width="820" alt="The same three films after halftone screening">
+<img src="docs/images/stage-screens.jpg" width="860" alt="The same three films after halftone screening">
 
-**4. Overprint.** The screened films are printed onto the paper in order, each shifted a
+**4. Overprint** — the screened films printed onto the paper in order, each shifted a
 fraction against the last. Where dots overlap you get colours that aren't in any single
-ink — the teal backdrop here is blue and yellow landing together.
+ink; the wave's deep indigo is blue and mint landing together.
 
-<img src="docs/images/stage-print.jpg" width="300" alt="The finished three-colour print">
+<img src="docs/images/stage-print.jpg" width="420" alt="The finished three-colour print">
 
 ## Screens
 
-Five ways of breaking a tone into marks, shown at 22 lpi on a single black ink.
-The first four are *amplitude* screens — a regular grid where the marks grow. The last
-one is *frequency* — same-sized specks, scattered more densely in the shadows.
+Five ways of breaking a tone into marks, shown on the wave's crest at 22 lpi in a single
+black ink. The first four are *amplitude* screens — a regular grid where the marks grow
+and shrink. The last is *frequency* — same-sized specks, scattered more densely in the
+shadows.
 
 <table>
 <tr>
@@ -88,21 +93,19 @@ one is *frequency* — same-sized specks, scattered more densely in the shadows.
 
 ## The interface
 
-<img src="docs/images/interface.jpg" width="820" alt="The Overprint interface: a print on a dark press bed, with ink channel controls on the right">
+<img src="docs/images/interface.jpg" width="860" alt="The Overprint interface: a print on a dark press bed, ink channel controls on the right">
 
 The panel is deliberately colourless — the only saturated thing in the interface is each
 channel's actual ink, so nothing competes with the print you're judging.
 
-A few controls worth knowing about:
-
 | Control | What it does |
 |---|---|
-| **Auto-pick** | Searches the ink library for the set that reproduces *this* photo on *this* paper most closely. It measures reproduction error, so it will pick a process-like triad for one photo and two flat colours for another. |
+| **Auto-pick** | Searches the ink library for the set that reproduces *this* photo on *this* paper most closely. It measures reproduction error, so it picks a process-like triad for one image and two flat colours for another. |
 | **Screen angle dial** | Drag it. Hold <kbd>Shift</kbd> to snap to 7.5°, or use the arrow keys. |
 | **Shuffle** (<kbd>R</kbd>) | Keeps your photo, reprints it with new inks, screen and frame. |
 | **Misregistration** | Shifts every ink but the first, the way a second pass through the drum would. |
 | **Hand-cut edge** | Roughens the edge of the ink block, like paper torn against a ruler. |
-| **Surround** | Dark, neutral grey or white behind the sheet. The grey is the ISO 3664 viewing grey, which is what you'd judge a real proof against. |
+| **Surround** | Dark, neutral grey or white behind the sheet. The grey is the ISO 3664 viewing grey you'd judge a real proof against. |
 | **Save separations** | One PNG per ink, ready to take to an actual press. |
 
 Your photo and settings are kept in your browser and restored when you come back.
@@ -119,8 +122,8 @@ ES modules need a real origin, so opening `index.html` straight from the Finder 
 work — hence the tiny server. Any browser with WebGL2 will do (Safari 15+, Chrome,
 Firefox, and mobile Safari).
 
-To host your own copy, push it anywhere that serves static files. There's no build
-step; the whole thing is 76 KB.
+To host your own copy, push it anywhere that serves static files. There's no build step;
+the app itself is 76 KB.
 
 ## Under the hood
 
@@ -150,10 +153,10 @@ out as `#c3adb6` — visibly washed out, with every photo needing the density cr
 hand. With the correct model, a single black ink reproduces a grey ramp **exactly**.
 
 **Screening keeps tone honest.** A dot's radius is derived from the coverage it needs to
-represent — `r = √(d/π)` for a round dot — rather than being scaled by eye, so tones
-don't drift as the frequency changes. Past 50% coverage neighbouring dots would merge and
-the maths stops working, so the shader crosses over to drawing shrinking *holes* at the
-cell corners instead.
+represent — `r = √(d/π)` for a round dot — rather than being scaled by eye, so tones don't
+drift as the frequency changes. Past 50% coverage neighbouring dots would merge and the
+maths stops working, so the shader crosses over to drawing shrinking *holes* at the cell
+corners instead.
 
 **Everything is in physical units.** Frequency is lines per inch against a 7-inch long
 edge, so a 3× export has the same physical dot size as what you saw on screen, just with
@@ -173,17 +176,23 @@ src/inks.js       ink library, paper stocks, presets
 src/separate.js   the separator — runs standalone in node, too
 src/render.js     WebGL2 renderer and the shader
 src/app.js        state, controls, export, session storage
+docs/images/      everything on this page, including the source scan
 ```
 
-`src/separate.js` has no browser dependencies, so you can import it in node and check
-the colour maths for yourself.
+`src/separate.js` has no browser dependencies, so you can import it in node and check the
+colour maths for yourself.
 
 ## Not implemented
 
-Crop marks, bleed and true-size imposition; saving your own presets. The ink library is
-26 Riso-like colours rather than a full swatch book.
+Crop marks, bleed and true-size imposition; saving your own presets. The ink library is 26
+Riso-like colours rather than a full swatch book.
 
 ## Credits
 
 Built after Apple's [tone](https://apps.apple.com/us/app/tone-photos-printed/id6792391699),
 which does the same job on iOS and is worth your money if you're on a phone.
+
+The demo image is Katsushika Hokusai's *Under the Wave off Kanagawa* (*The Great Wave*),
+ca. 1830–32, from [The Metropolitan Museum of Art](https://www.metmuseum.org/art/collection/search/36491),
+which releases it as public domain under CC0. It seemed a fitting thing to put through a
+printing press.
