@@ -1,6 +1,24 @@
 /* Overprint — press-room chrome. Deliberately achromatic: the only saturated
    colour in the interface is the ink each channel actually prints with. */
 
+/* Archivo, self-hosted so the page makes no third-party requests. SIL OFL; see fonts/OFL.txt. */
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url(fonts/archivo-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Archivo';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url(fonts/archivo-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
   --bed:    #131514;
   --panel:  #1b1e1d;
@@ -176,6 +194,7 @@ main {
 .empty-lead { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.02em; }
 .empty-sub  { margin: 0 0 16px; font-size: 13px; color: var(--dim); max-width: 42ch; line-height: 1.5; }
 .empty-acts { display: flex; gap: 9px; }
+.empty-note { margin: 18px 0 0; font-size: 11.5px; color: var(--dimmer); max-width: 46ch; line-height: 1.5; }
 
 .bed.drop::after {
   content: '';
@@ -193,8 +212,17 @@ main {
   border-left: 1px solid var(--line);
   min-height: 0;
   display: flex;
+  flex-direction: column;
 }
-.rail-scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; }
+.rail-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.rail-note {
+  margin: 0;
+  padding: 9px 14px 10px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--dimmer);
+}
 .rail-scroll::-webkit-scrollbar { width: 10px; }
 .rail-scroll::-webkit-scrollbar-thumb { background: #323735; border-radius: 6px; border: 3px solid var(--panel); }
 
@@ -275,10 +303,9 @@ input[type=range]::-moz-range-thumb { width: 13px; height: 13px; border: 0; bord
 .chip:hover { color: var(--text); border-color: var(--edge); }
 .chip.on { background: #30352f; color: var(--text); border-color: var(--edge); }
 
-.papers { display: flex; gap: 6px; margin: 9px 0 3px; }
+.papers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 9px 0 3px; }
 .paper-sw {
-  flex: 1;
-  height: 34px;
+  height: 30px;
   border-radius: 5px;
   border: 1px solid var(--edge);
   cursor: pointer;
@@ -339,11 +366,11 @@ input[type=range]::-moz-range-thumb { width: 13px; height: 13px; border: 0; bord
   border-radius: 10px;
   padding: 9px;
   box-shadow: 0 14px 44px rgba(0,0,0,.55);
-  width: 246px;
+  width: 306px;
   max-height: 60vh;
   overflow-y: auto;
 }
-.pop-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.pop-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; }
 .pop-sw {
   aspect-ratio: 1;
   border-radius: 5px;
@@ -353,6 +380,13 @@ input[type=range]::-moz-range-thumb { width: 13px; height: 13px; border: 0; bord
   outline-offset: 1px;
 }
 .pop-sw.on { box-shadow: 0 0 0 2px var(--text); }
+.pop-sw.custom {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  background: conic-gradient(#f65058, #ffb511, #ffe800, #00a95c, #00838a, #0078bf, #765ba7, #ff48b0, #f65058);
+}
+.pop-sw.custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .pop-name { font-size: 11.5px; color: var(--dim); height: 15px; margin: 7px 2px 0; }
 
 .toast {
@@ -374,6 +408,7 @@ input[type=range]::-moz-range-thumb { width: 13px; height: 13px; border: 0; bord
 @media (max-width: 900px) {
   main { grid-template-columns: 1fr; grid-template-rows: minmax(220px, 1fr) auto; }
   .rail { border-left: 0; border-top: 1px solid var(--line); max-height: 46vh; }
+  .rail-note { display: none; }
   .bar { flex-wrap: wrap; height: auto; padding: 8px 12px; gap: 10px; }
   .views { order: 3; width: 100%; overflow-x: auto; }
 }
@@ -381,3 +416,23 @@ input[type=range]::-moz-range-thumb { width: 13px; height: 13px; border: 0; bord
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* ── floods and fountains ────────────────────────────────────────────── */
+
+.sub { font-size: 12px; color: var(--dim); margin: 14px 0 0; }
+.sub + .chips { margin-top: 6px; }
+
+.ink-pair { display: flex; align-items: center; gap: 8px; margin: 9px 0 2px; }
+.ink-pair .arrow { color: var(--dimmer); font-size: 12px; }
+
+.grads { display: flex; gap: 5px; margin: 8px 0 2px; }
+.grad {
+  flex: 1;
+  height: 24px;
+  border-radius: 5px;
+  border: 1px solid var(--edge);
+  cursor: pointer;
+  padding: 0;
+  outline-offset: 1px;
+}
+.grad.on { box-shadow: 0 0 0 2px var(--text); }

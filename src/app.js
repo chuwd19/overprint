@@ -1,4 +1,7 @@
-import { INKS, PAPERS, SHAPES, ASPECTS, ANGLE_SETS, PRESETS } from './inks.js';
+import {
+  INKS, AUTO_INKS, PAPERS, SHAPES, ASPECTS, ANGLE_SETS, PRESETS, MARKS, inkByName,
+  FM_SHAPE, PIXEL_SHAPE, PIXEL_SIZES, FLOOD_KINDS, FOUNTAIN_KINDS, FOUNTAINS,
+} from './inks.js';
 import { Renderer, paperSize, DOC_LONG_EDGE_IN } from './render.js';
 import { autoPickInks, sampleImage } from './separate.js';
 import { hexToLinear, luminance } from './color.js';
@@ -12,19 +15,40 @@ function defaultState() {
   return {
     mode: 'custom', view: 'print', bg: 'dark',
     paper: 1, paperGrain: 1,
+    flood: { kind: 0, inks: ['Scarlet', 'Cornflower'], angle: 90 },
     inkCount: 2,
     inks: ['Black', 'Red', 'Blue'],
-    ink: [0, 1, 2].map((i) => ({
+    ink: ['Black', 'Red', 'Blue'].map((name, i) => ({
       lpi: 34, angle: ANGLE_SETS[2][i], shape: 0,
-      density: 1, gamma: 1, opacity: 1, grain: 2,
+      density: 1, gamma: 1, hiding: inkByName(name).hiding, grain: 2,
+      fountain: { kind: 0, to: 'Fluo Pink', angle: 90 },
     })),
     inkLimit: 1, inkMottle: 0.10, misreg: 1.0,
+    inkFade: 0, streaks: 0, knockout: 0,
     exposure: 1, contrast: 1.06, saturation: 1,
-    aspect: 0, margin: 0.06, corner: 0, deckle: 0,
+    rot: 0, flipH: false, flipV: false,
+    aspect: 0, margin: 0.06, corner: 0, deckle: 0, marks: 0,
     zoom: 1, panX: 0, panY: 0,
     seed: Math.random(),
     exportScale: 2,
   };
+}
+
+/** A saved session from an older version lacks the newer fields; fill them in. */
+function restoreState(saved) {
+  const d = defaultState();
+  const s = { ...d, ...saved };
+  s.flood = { ...d.flood, ...(saved.flood || {}) };
+  s.flood.inks = [...(saved.flood?.inks || d.flood.inks)];
+  s.ink = d.ink.map((k, i) => {
+    const { opacity, ...old } = saved.ink[i] || {};   // 'opacity' was the pre-hiding control; drop it
+    return {
+      ...k, ...old,
+      hiding: old.hiding ?? inkByName(s.inks[i]).hiding,
+      fountain: { ...k.fountain, ...(old.fountain || {}) },
+    };
+  });
+  return s;
 }
 
 let state = defaultState();
@@ -99,13 +123,13 @@ function draw() {
 }
 
 function updateStats() {
-  const [pw, ph] = paperSize(state, renderer.imageAspect, 1600 * state.exportScale);
+  const [pw, ph] = paperSize(state, renderer.viewAspect(state), 1600 * state.exportScale);
   $('statSize').textContent = bitmap ? `${pw} × ${ph} px at ${state.exportScale}×` : '—';
   $('statInks').textContent = state.inks.slice(0, state.inkCount).join(' + ');
   const k = state.ink[0];
   const ppi = Math.max(pw, ph) / DOC_LONG_EDGE_IN;
-  $('statScreen').textContent = k.shape === 4
-    ? `grain ${k.grain.toFixed(1)}`
+  $('statScreen').textContent = k.shape >= FM_SHAPE
+    ? `${SHAPES[k.shape].name.toLowerCase()} ${k.grain.toFixed(1)} px`
     : `${k.lpi} lpi · ${(ppi / k.lpi).toFixed(1)} px cell`;
 }
 
@@ -248,15 +272,35 @@ function angleDial(parent, ink) {
 
 function inkHex(inkOrName) {
   const name = typeof inkOrName === 'string' ? inkOrName : inkOrName.name;
-  return (INKS.find((k) => k.name === name) || INKS[0]).hex;
+  return inkByName(name).hex;
 }
 
-function openInkPicker(anchor, slot) {
+/** Put an ink in a channel, with the hiding power it comes with. */
+function setInk(slot, name) {
+  state.inks[slot] = name;
+  state.ink[slot].hiding = inkByName(name).hiding;
+}
+
+/** The paper as the separator sees it: the stock, or the stock under its flood coat. */
+function effectivePaper() {
+  const p = hexToLinear(PAPERS[state.paper].hex);
+  const f = state.flood;
+  if (!f.kind) return p;
+  const A = inkByName(f.inks[0]), a = hexToLinear(A.hex);
+  if (f.kind === 1) return p.map((v, k) => (1 - A.hiding) * v * a[k] + A.hiding * a[k]);
+  // A gradient flood is judged at its midpoint, the tray blend of both inks.
+  const B = inkByName(f.inks[1]), b = hexToLinear(B.hex);
+  const c = a.map((v, k) => Math.sqrt(Math.max(v, 0.002) * Math.max(b[k], 0.002)));
+  const h = (A.hiding + B.hiding) / 2;
+  return p.map((v, k) => (1 - h) * v * c[k] + h * c[k]);
+}
+
+function openInkPicker(anchor, current, onPick) {
   const pop = $('popover');
   pop.hidden = false;
   pop.innerHTML = '';
   const grid = el('div', 'pop-grid', pop);
-  const name = el('div', 'pop-name', pop, state.inks[slot]);
+  const name = el('div', 'pop-name', pop, current);
 
   INKS.forEach((ink) => {
     const b = el('button', 'pop-sw', grid);
@@ -264,18 +308,29 @@ function openInkPicker(anchor, slot) {
     b.style.background = ink.hex;
     b.title = ink.name;
     b.setAttribute('aria-label', ink.name);
-    if (ink.name === state.inks[slot]) b.classList.add('on');
+    if (ink.name === current) b.classList.add('on');
     b.addEventListener('mouseenter', () => { name.textContent = ink.name; });
     b.addEventListener('click', () => {
-      state.inks[slot] = ink.name;
       closePopover();
+      onPick(ink.name);
       buildRail();
       draw();
     });
   });
 
+  // Any colour at all: a native colour input behind a swatch. Live while dragging.
+  const custom = el('label', 'pop-sw custom', grid);
+  custom.title = 'Any colour';
+  const ci = el('input', null, custom);
+  ci.type = 'color';
+  ci.value = current[0] === '#' ? current : '#888888';
+  ci.setAttribute('aria-label', 'Custom ink colour');
+  if (current[0] === '#') custom.classList.add('on');
+  ci.addEventListener('input', () => { name.textContent = ci.value; onPick(ci.value); draw(); });
+  ci.addEventListener('change', () => { closePopover(); onPick(ci.value); buildRail(); draw(); });
+
   const r = anchor.getBoundingClientRect();
-  pop.style.left = `${Math.min(r.left, window.innerWidth - 258)}px`;
+  pop.style.left = `${Math.min(r.left, window.innerWidth - 318)}px`;
   pop.style.top = `${Math.min(r.bottom + 6, window.innerHeight - pop.offsetHeight - 10)}px`;
   setTimeout(() => document.addEventListener('pointerdown', outside), 0);
 
@@ -287,11 +342,52 @@ function openInkPicker(anchor, slot) {
   $('popover')._close = closePopover;
 }
 
+/** A drum swatch and name that open the ink picker. */
+function inkButton(parent, name, label, onPick) {
+  const drum = el('button', 'ink-drum', parent);
+  drum.type = 'button';
+  drum.style.background = inkHex(name);
+  drum.setAttribute('aria-label', label);
+  const nm = el('button', 'ink-name', parent, name);
+  nm.type = 'button';
+  const open = (e) => openInkPicker(e.currentTarget, name, onPick);
+  drum.addEventListener('click', open);
+  nm.addEventListener('click', open);
+}
+
+/**
+ * Editor for a two-ink blend: the pair, quick pairs, and a direction when it's
+ * linear. `grad` is 0 solid, 1 linear, 2 radial. `pair` is [from, to] and
+ * `setPair(index, name)` writes back. A split fountain hides the first ink,
+ * since that's the channel's own.
+ */
+function fountainEditor(parent, grad, pair, setPair, angleObj, { first = true } = {}) {
+  const row = el('div', 'ink-pair', parent);
+  if (first) inkButton(row, pair[0], 'First ink', (n) => setPair(0, n));
+  if (grad) {
+    el('span', 'arrow', row, first ? '→' : 'into');
+    inkButton(row, pair[1], 'Second ink', (n) => setPair(1, n));
+  }
+  if (grad) {
+    const g = el('div', 'grads', parent);
+    FOUNTAINS.forEach((f) => {
+      const b = el('button', 'grad', g);
+      b.type = 'button';
+      b.title = `${f.name}: ${f.inks[0]} → ${f.inks[1]}`;
+      b.setAttribute('aria-label', b.title);
+      b.style.background = `linear-gradient(90deg, ${inkHex(f.inks[0])}, ${inkHex(f.inks[1])})`;
+      if (f.inks[0] === pair[0] && f.inks[1] === pair[1]) b.classList.add('on');
+      b.addEventListener('click', () => { setPair(0, f.inks[0]); setPair(1, f.inks[1]); buildRail(); draw(); });
+    });
+  }
+  if (grad === 1) {
+    slider(parent, 'Direction', angleObj, 'angle', { min: 0, max: 360, step: 1, fmt: (v) => `${v}°` });
+  }
+}
+
 /* ── the rail ──────────────────────────────────────────────────────────── */
 
 const openSections = { Photo: true, Paper: true, Inks: true, Press: false, Frame: false, Output: false };
-
-function ang(i) { return state.ink[i].angle; }
 
 function buildRail() {
   const rail = $('railScroll');
@@ -309,6 +405,17 @@ function buildRail() {
   pick.type = 'button';
   pick.addEventListener('click', () => $('fileInput').click());
   el('p', 'hint', ph, 'Or drop an image on the sheet, or paste one.');
+  const ori = el('div', 'chips', ph);
+  const rotB = el('button', 'chip', ori, 'Rotate');
+  rotB.type = 'button';
+  rotB.title = 'A quarter turn clockwise';
+  rotB.addEventListener('click', () => { state.rot = (state.rot + 1) & 3; draw(); });
+  [['flipH', 'Flip ↔'], ['flipV', 'Flip ↕']].forEach(([key, label]) => {
+    const b = el('button', 'chip', ori, label);
+    b.type = 'button';
+    if (state[key]) b.classList.add('on');
+    b.addEventListener('click', () => { state[key] = !state[key]; b.classList.toggle('on', state[key]); draw(); });
+  });
   slider(ph, 'Exposure', state, 'exposure', { min: 0.3, max: 2.5, step: 0.01, fmt: (v) => `${v.toFixed(2)}×` });
   slider(ph, 'Contrast', state, 'contrast', { min: 0.4, max: 2.2, step: 0.01, fmt: (v) => `${v.toFixed(2)}×` });
   slider(ph, 'Saturation', state, 'saturation', { min: 0, max: 2, step: 0.01, fmt: (v) => `${v.toFixed(2)}×` });
@@ -318,7 +425,8 @@ function buildRail() {
   }
 
   /* Paper */
-  const pa = section(rail, 'Paper', PAPERS[state.paper].name, openSections.Paper);
+  const flooded = state.flood.kind > 0;
+  const pa = section(rail, 'Paper', PAPERS[state.paper].name + (flooded ? ' · flooded' : ''), openSections.Paper);
   const sw = el('div', 'papers', pa);
   PAPERS.forEach((p, i) => {
     const b = el('button', 'paper-sw', sw);
@@ -331,6 +439,13 @@ function buildRail() {
   });
   if (!simple) slider(pa, 'Grain', state, 'paperGrain', { min: 0, max: 2.5, step: 0.01, fmt: (v) => `${Math.round(v * 100)}%` });
 
+  el('div', 'sub', pa, 'Flood coat');
+  chips(pa, FLOOD_KINDS, (k) => k.id === state.flood.kind, (k) => { state.flood.kind = k.id; buildRail(); draw(); });
+  if (flooded) {
+    fountainEditor(pa, state.flood.kind - 1, state.flood.inks, (j, n) => { state.flood.inks[j] = n; }, state.flood);
+    el('p', 'hint', pa, 'A layer of ink laid over the block before the picture. The separations are made against it, so it behaves like coloured paper.');
+  }
+
   /* Inks */
   const ik = section(rail, 'Inks', `${state.inkCount} colour${state.inkCount > 1 ? 's' : ''}`, openSections.Inks);
   const head = el('div', 'chips', ik);
@@ -342,6 +457,7 @@ function buildRail() {
   });
   const autoBtn = el('button', 'chip', head, 'Auto-pick');
   autoBtn.type = 'button';
+  autoBtn.id = 'autoBtn';
   autoBtn.title = 'Choose the inks that reproduce this photo most closely';
   autoBtn.addEventListener('click', () => autoPick());
 
@@ -351,40 +467,46 @@ function buildRail() {
     const box = el('div', 'ink', ik);
     const hd = el('div', 'ink-head', box);
     hd.style.background = `linear-gradient(90deg, ${hex}26, transparent 70%)`;
-
-    const drum = el('button', 'ink-drum', hd);
-    drum.type = 'button';
-    drum.style.background = hex;
-    drum.setAttribute('aria-label', `Change ink ${i + 1}`);
-    const nameBtn = el('button', 'ink-name', hd, state.inks[i]);
-    nameBtn.type = 'button';
-    drum.addEventListener('click', () => openInkPicker(drum, i));
-    nameBtn.addEventListener('click', () => openInkPicker(nameBtn, i));
+    inkButton(hd, state.inks[i], `Change ink ${i + 1}`, (n) => setInk(i, n));
 
     const body = el('div', 'ink-body', box);
+    const amplitude = ink.shape < FM_SHAPE;
 
-    const dr = el('div', 'dial-row', body);
-    const dial = angleDial(dr, ink);
-    const meta = el('div', 'dial-meta', dr);
-    const angleRow = slider(meta, 'Screen angle', ink, 'angle',
-      { min: 0, max: 179.5, step: 0.5, fmt: (v) => `${v.toFixed(1)}°`, onInput: () => dial.paint() });
-    dial.setOnChange(() => {
-      const inp = angleRow.querySelector('input');
-      inp.value = ink.angle;
-      angleRow.querySelector('.val').textContent = `${ink.angle.toFixed(1)}°`;
-    });
+    if (amplitude) {
+      const dr = el('div', 'dial-row', body);
+      const dial = angleDial(dr, ink);
+      const meta = el('div', 'dial-meta', dr);
+      const angleRow = slider(meta, 'Screen angle', ink, 'angle',
+        { min: 0, max: 179.5, step: 0.5, fmt: (v) => `${v.toFixed(1)}°`, onInput: () => dial.paint() });
+      dial.setOnChange(() => {
+        const inp = angleRow.querySelector('input');
+        inp.value = ink.angle;
+        angleRow.querySelector('.val').textContent = `${ink.angle.toFixed(1)}°`;
+      });
+    }
 
     chips(body, SHAPES, (s) => s.id === ink.shape, (s) => { ink.shape = s.id; buildRail(); draw(); });
 
-    if (ink.shape === 4) {
-      slider(body, 'Grain size', ink, 'grain', { min: 0.6, max: 10, step: 0.05, fmt: (v) => `${v.toFixed(1)} px` });
-    } else {
+    if (amplitude) {
       slider(body, 'Frequency', ink, 'lpi', { min: 8, max: 120, step: 1, fmt: (v) => `${v} lpi` });
+    } else {
+      const pixel = ink.shape >= PIXEL_SHAPE;
+      slider(body, pixel ? 'Pixel size' : 'Grain size', ink, 'grain',
+        { min: pixel ? 1 : 0.6, max: 10, step: 0.05, fmt: (v) => `${v.toFixed(1)} px` });
+      chips(body, PIXEL_SIZES, (s) => Math.abs(s.px - ink.grain) < 0.03, (s) => { ink.grain = s.px; buildRail(); draw(); });
     }
     if (!simple) {
       slider(body, 'Density', ink, 'density', { min: 0, max: 1.8, step: 0.01, fmt: (v) => `${Math.round(v * 100)}%` });
       slider(body, 'Tone curve', ink, 'gamma', { min: 0.4, max: 2.4, step: 0.01, fmt: (v) => `γ ${v.toFixed(2)}` });
-      slider(body, 'Opacity', ink, 'opacity', { min: 0.3, max: 1, step: 0.01, fmt: (v) => `${Math.round(v * 100)}%` });
+      slider(body, 'Hiding', ink, 'hiding', { min: 0, max: 1, step: 0.01, fmt: (v) => (v ? `${Math.round(v * 100)}%` : 'glaze') });
+
+      el('div', 'sub', body, 'Split fountain');
+      chips(body, FOUNTAIN_KINDS, (k) => k.id === ink.fountain.kind, (k) => { ink.fountain.kind = k.id; buildRail(); draw(); });
+      if (ink.fountain.kind) {
+        fountainEditor(body, ink.fountain.kind, [state.inks[i], ink.fountain.to],
+          (j, n) => { if (j) ink.fountain.to = n; else setInk(i, n); }, ink.fountain, { first: false });
+        el('p', 'hint', body, 'Two inks in one tray. The stencil is still cut for the first ink; the second is what comes out at the far end.');
+      }
     }
   }
 
@@ -394,12 +516,17 @@ function buildRail() {
     slider(pr, 'Misregistration', state, 'misreg', { min: 0, max: 6, step: 0.05, fmt: (v) => (v ? `${v.toFixed(2)} px` : 'exact') });
     slider(pr, 'Ink mottle', state, 'inkMottle', { min: 0, max: 0.6, step: 0.01, fmt: (v) => `${Math.round(v * 100)}%` });
     slider(pr, 'Ink limit', state, 'inkLimit', { min: 0.4, max: 1, step: 0.01, fmt: (v) => `${Math.round(v * 100)}%` });
-    el('p', 'hint', pr, 'Misregistration shifts every ink but the first, the way a second pass through the drum would.');
+    slider(pr, 'Ink fade', state, 'inkFade', { min: 0, max: 1, step: 0.01, fmt: (v) => (v ? `${Math.round(v * 100)}%` : 'full drum') });
+    slider(pr, 'Roller streaks', state, 'streaks', { min: 0, max: 1, step: 0.01, fmt: (v) => (v ? `${Math.round(v * 100)}%` : 'even') });
+    slider(pr, 'Highlight knockout', state, 'knockout', { min: 0, max: 0.4, step: 0.005, fmt: (v) => (v ? `below ${Math.round(v * 100)}%` : 'off') });
+    el('p', 'hint', pr, 'Misregistration shifts every ink but the first, the way a second pass through the drum would. Fade is the drum running low toward the trailing edge; streaks are the roller\u2019s bands; knockout keeps the lightest tones as clean paper.');
   }
 
   /* Frame */
   const fr = section(rail, 'Frame', null, openSections.Frame);
   chips(fr, ASPECTS, (a) => a.value === state.aspect, (a) => { state.aspect = a.value; buildRail(); draw(); });
+  el('div', 'sub', fr, 'Marks');
+  chips(fr, MARKS, (m) => m.id === state.marks, (m) => { state.marks = m.id; buildRail(); draw(); });
   slider(fr, 'Margin', state, 'margin', { min: 0, max: 0.2, step: 0.002, fmt: (v) => `${(v * 100).toFixed(1)}%` });
   slider(fr, 'Corner radius', state, 'corner', { min: 0, max: 1, step: 0.005, fmt: (v) => (v ? `${(v * 100).toFixed(0)}%` : 'square') });
   slider(fr, 'Hand-cut edge', state, 'deckle', { min: 0, max: 3, step: 0.02, fmt: (v) => (v ? v.toFixed(2) : 'clean') });
@@ -425,65 +552,142 @@ function setInkCount(n) {
   draw();
 }
 
-function autoPick() {
+/* ── auto-pick, off the main thread ─────────────────────────────────────── */
+
+let picker = null, pickerBroken = false, pickSeq = 0;
+const pickWaiting = new Map();
+
+/**
+ * Resolve to the best ink names for the current photo, paper and count. Runs in
+ * a module worker when the browser has one, on the main thread otherwise. A
+ * newer request supersedes an older one: the older resolves to null.
+ */
+function pickInks(count) {
+  const id = ++pickSeq;
+  const paper = effectivePaper();
+  if (!pickerBroken && !picker) {
+    try {
+      picker = new Worker(new URL('./autopick-worker.js', import.meta.url), { type: 'module' });
+      picker.onmessage = (e) => {
+        const res = pickWaiting.get(e.data.id);
+        if (res) { pickWaiting.delete(e.data.id); res(e.data.id === pickSeq ? e.data.inks : null); }
+      };
+      picker.onerror = () => {   // no module workers here: answer everything in flight on this thread
+        pickerBroken = true; picker = null;
+        for (const [pid, res] of pickWaiting) {
+          pickWaiting.delete(pid);
+          res(pid === pickSeq ? autoPickInks(AUTO_INKS, samples, paper, count).inks : null);
+        }
+      };
+    } catch { pickerBroken = true; picker = null; }
+  }
+  if (!picker) return Promise.resolve(autoPickInks(AUTO_INKS, samples, paper, count).inks);
+  return new Promise((res) => {
+    pickWaiting.set(id, res);
+    picker.postMessage({ id, samples, paper, count });
+  });
+}
+
+async function autoPick() {
   if (!samples) { toast('Load a photo first'); return; }
-  const paperLin = hexToLinear(PAPERS[state.paper].hex);
   const t0 = performance.now();
-  const { inks } = autoPickInks(INKS, samples, paperLin, state.inkCount);
-  inks.forEach((n, i) => { state.inks[i] = n; });
+  const btn = $('autoBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Picking…'; }
+  const inks = await pickInks(state.inkCount);
+  if (!inks) return;                                   // a newer pick took over
+  inks.forEach((n, i) => setInk(i, n));
   buildRail();
   draw();
   toast(`${inks.join(' + ')} · ${Math.round(performance.now() - t0)} ms`);
 }
 
 function applyPreset(p) {
+  const d = defaultState();
   state.paper = p.paper;
   state.inkCount = p.inkCount;
   state.margin = p.margin ?? state.margin;
   state.misreg = p.misreg ?? state.misreg;
   state.inkMottle = p.inkMottle ?? state.inkMottle;
+  state.inkLimit = p.inkLimit ?? 1;
+  state.inkFade = p.inkFade ?? 0;
+  state.streaks = p.streaks ?? 0;
+  state.knockout = p.knockout ?? 0;
   state.deckle = p.deckle ?? 0;
+  state.exposure = p.exposure ?? 1;
   state.contrast = p.contrast ?? 1.06;
   state.saturation = p.saturation ?? 1;
+  state.flood = { ...d.flood, ...(p.flood || {}) };
+  state.flood.inks = [...(p.flood?.inks || d.flood.inks)];
   ANGLE_SETS[p.inkCount - 1].forEach((a, i) => { state.ink[i].angle = a; });
-  (p.ink || []).forEach((k, i) => Object.assign(state.ink[i], k));
-  if (p.inks) p.inks.forEach((n, i) => { state.inks[i] = n; });
-  if (p.auto && samples) {
-    const { inks } = autoPickInks(INKS, samples, hexToLinear(PAPERS[state.paper].hex), state.inkCount);
-    inks.forEach((n, i) => { state.inks[i] = n; });
-  }
+  // A preset is a fresh start for every channel, not a patch on the last one.
+  state.ink.forEach((k, i) => Object.assign(k, { density: 1, gamma: 1, fountain: { ...d.ink[i].fountain } }));
+  if (p.inks) p.inks.forEach((n, i) => setInk(i, n));
+  (p.ink || []).forEach((k, i) => {
+    const { fountain, ...rest } = k;
+    Object.assign(state.ink[i], rest);
+    if (fountain) Object.assign(state.ink[i].fountain, fountain);
+  });
+  buildRail();
+  draw();
+  if (p.auto && samples) applyPicked(pickInks(state.inkCount));
+}
+
+/** Swap the picked inks in when the search comes back, unless it was superseded. */
+async function applyPicked(promise) {
+  const inks = await promise;
+  if (!inks) return;
+  inks.forEach((n, i) => setInk(i, n));
   buildRail();
   draw();
 }
 
-function shuffle() {
+const LIGHT_INKS = ['Yellow', 'Sunflower', 'Fluo Pink', 'Fluo Orange', 'Aqua', 'Mint', 'Cornflower', 'Light Gray'];
+
+async function shuffle() {
   const pick = (a) => a[Math.floor(Math.random() * a.length)];
   state.seed = Math.random();
   state.paper = Math.floor(Math.random() * (PAPERS.length - 1));
   state.inkCount = pick([1, 2, 2, 2, 3]);
-  const shape = pick([0, 0, 0, 1, 2, 3, 4]);
+  const shape = pick([0, 0, 0, 1, 2, 3, 4, 5, 6, 6, 7]);
   const lpi = Math.round(14 + Math.random() * 54);
+  const px = shape >= PIXEL_SHAPE ? pick(PIXEL_SIZES).px : 1 + Math.random() * 3;
   ANGLE_SETS[state.inkCount - 1].forEach((a, i) => {
-    Object.assign(state.ink[i], { angle: a, shape, lpi, grain: 1 + Math.random() * 3 });
+    Object.assign(state.ink[i], { angle: a, shape, lpi, grain: px });
+    state.ink[i].fountain.kind = 0;
   });
   state.margin = pick([0, 0.03, 0.06, 0.09, 0.13]);
   state.corner = Math.random() < 0.22 ? Math.random() * 0.3 : 0;
   state.deckle = Math.random() < 0.3 ? Math.random() * 1.4 : 0;
   state.misreg = Math.random() < 0.7 ? Math.random() * 2.4 : 0;
   state.inkMottle = Math.random() * 0.25;
+  state.inkFade = Math.random() < 0.25 ? Math.random() * 0.6 : 0;
+  state.streaks = Math.random() < 0.3 ? Math.random() * 0.6 : 0;
+  state.knockout = Math.random() < 0.2 ? Math.random() * 0.2 : 0;
 
+  // Now and then, a flood under the picture or a fountain in the first tray.
+  state.flood.kind = Math.random() < 0.18 ? pick([1, 2, 2, 3]) : 0;
+  if (state.flood.kind === 1) state.flood.inks[0] = pick(LIGHT_INKS);
+  else if (state.flood.kind) state.flood.inks = [...pick(FOUNTAINS).inks];
+  state.flood.angle = pick([0, 90, 90, 90, 45, 135, 270]);
+  if (Math.random() < 0.15) {
+    Object.assign(state.ink[0].fountain, { kind: pick([1, 1, 2]), to: pick(LIGHT_INKS), angle: pick([0, 90, 90, 45, 135]) });
+  }
+
+  // Inks fitted to the photo more often than not, random otherwise. The print
+  // changes once, when the inks are known; a fit takes a few hundred ms at most.
+  let chosen = null;
   if (samples && Math.random() < 0.65) {
-    const { inks } = autoPickInks(INKS, samples, hexToLinear(PAPERS[state.paper].hex), state.inkCount);
-    inks.forEach((n, i) => { state.inks[i] = n; });
+    chosen = await pickInks(state.inkCount);
+    if (!chosen) return;                                 // a newer shuffle took over
   } else {
-    const chosen = [];
+    chosen = [];
     while (chosen.length < state.inkCount) {
-      const c = pick(INKS).name;
+      const c = pick(AUTO_INKS).name;
       if (!chosen.includes(c)) chosen.push(c);
     }
     chosen.sort((a, b) => luminance(hexToLinear(inkHex(a))) - luminance(hexToLinear(inkHex(b))));
-    chosen.forEach((n, i) => { state.inks[i] = n; });
   }
+  chosen.forEach((n, i) => setInk(i, n));
   buildRail();
   draw();
 }
@@ -497,6 +701,7 @@ async function loadBlob(blob, { persist = true } = {}) {
   exportRenderer?.setImage(bmp);
   samples = sampleImage(bmp);
   state.zoom = 1; state.panX = 0; state.panY = 0;
+  state.rot = 0; state.flipH = false; state.flipV = false;
   $('empty').hidden = true;
   $('view').classList.remove('hidden');
   if (persist) idbPut('current', blob);
@@ -565,6 +770,9 @@ function download(canvas, name) {
   }, 'image/png'));
 }
 
+const slug = (s) => s.toLowerCase().replace(/\s+/g, '');
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
 async function exportPNG(kind) {
   if (!bitmap) { toast('Load a photo first'); return; }
   if (!exportRenderer) {
@@ -572,22 +780,32 @@ async function exportPNG(kind) {
     exportRenderer.setImage(bitmap);
   }
   const busy = el('div', 'busy', document.body, 'Printing…');
-  await new Promise((r) => setTimeout(r, 16));
+  await pause(16);
   try {
     const longEdge = 1600 * state.exportScale;
-    const tag = `${state.inks.slice(0, state.inkCount).join('-').toLowerCase().replace(/\s+/g, '')}`;
+    const tag = slug(state.inks.slice(0, state.inkCount).join('-'));
     if (kind === 'sheet') {
-      exportRenderer.renderSheet(state, longEdge, -1, state.view !== 'separation', state.view === 'photo' ? 1 : 0);
+      exportRenderer.renderSheet(state, longEdge, {
+        screen: state.view !== 'separation', mode: state.view === 'photo' ? 1 : 0,
+      });
       await download(exportRenderer.canvas, `overprint-${tag}-${state.exportScale}x.png`);
       toast('Print saved');
     } else {
-      for (let i = 0; i < state.inkCount; i++) {
-        exportRenderer.renderSheet(state, longEdge, i, true);
-        await download(exportRenderer.canvas,
-          `overprint-${tag}-${i + 1}-${state.inks[i].toLowerCase().replace(/\s+/g, '')}.png`);
-        await new Promise((r) => setTimeout(r, 160));
+      // A flood is its own pass on the press: a solid block, first through the drum.
+      let n = 0;
+      if (state.flood.kind) {
+        exportRenderer.renderSheet(state, longEdge, { mode: 3 });
+        await download(exportRenderer.canvas, `overprint-${tag}-0-flood-${slug(state.flood.inks[0])}.png`);
+        await pause(160);
+        n++;
       }
-      toast(`${state.inkCount} separations saved`);
+      for (let i = 0; i < state.inkCount; i++) {
+        exportRenderer.renderSheet(state, longEdge, { solo: i, showFlood: false });
+        await download(exportRenderer.canvas, `overprint-${tag}-${i + 1}-${slug(state.inks[i])}.png`);
+        await pause(160);
+        n++;
+      }
+      toast(`${n} separations saved`);
     }
   } finally {
     busy.remove();
@@ -615,7 +833,7 @@ function init() {
 
   try {
     const saved = JSON.parse(localStorage.getItem('overprint.state') || 'null');
-    if (saved && saved.ink?.length === 3) state = { ...defaultState(), ...saved };
+    if (saved && saved.ink?.length === 3) state = restoreState(saved);
   } catch { /* fall back to defaults */ }
 
   segment('modeSeg', 'mode', (m) => { state.mode = m; buildRail(); });

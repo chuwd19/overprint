@@ -24,10 +24,7 @@
 <meta name="twitter:image" content="https://chuwd19.github.io/overprint/docs/images/social-card.jpg">
 <meta name="twitter:image:alt" content="A photograph on the left, the same image as a three-ink halftone print on the right.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 fill=%27%23f2eadb%27/%3E%3Ccircle cx=%2713%27 cy=%2713%27 r=%279%27 fill=%27%23ff665e%27/%3E%3Ccircle cx=%2720%27 cy=%2720%27 r=%279%27 fill=%27%233d5588%27 opacity=%27.85%27/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="src/style.css?v=2">
+<link rel="stylesheet" href="src/style.css?v=5">
 </head>
 <body>
 
@@ -75,6 +72,7 @@
         <button class="btn primary" id="chooseBtn">Choose a photo</button>
         <button class="btn" id="sampleBtn">Use a test image</button>
       </div>
+      <p class="empty-note">No account, no upload, nothing recorded. Your photo and settings stay in this browser.</p>
     </div>
 
     <div class="bed-foot">
@@ -92,6 +90,7 @@
 
   <aside class="rail" id="rail">
     <div class="rail-scroll" id="railScroll"></div>
+    <p class="rail-note">Everything happens in your browser. There is no account and nothing is uploaded or recorded; the page makes no network requests once loaded. Your photo and settings are kept only in this browser&rsquo;s storage, and clearing site data removes them.</p>
   </aside>
 </main>
 
@@ -100,6 +99,6 @@
 <div class="popover" id="popover" hidden></div>
 <div class="toast" id="toast" hidden></div>
 
-<script type="module" src="src/app.js?v=2"></script>
+<script type="module" src="src/app.js?v=5"></script>
 </body>
 </html>
