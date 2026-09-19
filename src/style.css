@@ -92,6 +92,8 @@ button { font: inherit; color: inherit; font-variant-numeric: tabular-nums; }
 .btn.primary { background: var(--text); color: #161a18; border-color: var(--text); font-weight: 600; }
 .btn.primary:hover { background: #fff; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn svg { display: inline-block; vertical-align: -2px; margin-right: 6px; }
+.btn.wide { display: block; width: 100%; margin: 8px 0 6px; padding: 9px 13px; text-align: center; font-size: 13px; }
 
 /* ── layout ──────────────────────────────────────────────────────────── */
 

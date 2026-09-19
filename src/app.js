@@ -305,9 +305,10 @@ function buildRail() {
 
   /* Photo */
   const ph = section(rail, 'Photo', null, openSections.Photo);
-  const act = el('div', 'chips', ph);
-  const pick = el('button', 'chip', act, bitmap ? 'Replace photo' : 'Choose photo');
+  const pick = el('button', 'btn wide', ph, bitmap ? 'Replace photo…' : 'Choose a photo…');
+  pick.type = 'button';
   pick.addEventListener('click', () => $('fileInput').click());
+  el('p', 'hint', ph, 'Or drop an image on the sheet, or paste one.');
   slider(ph, 'Exposure', state, 'exposure', { min: 0.3, max: 2.5, step: 0.01, fmt: (v) => `${v.toFixed(2)}×` });
   slider(ph, 'Contrast', state, 'contrast', { min: 0.4, max: 2.2, step: 0.01, fmt: (v) => `${v.toFixed(2)}×` });
   slider(ph, 'Saturation', state, 'saturation', { min: 0, max: 2, step: 0.01, fmt: (v) => `${v.toFixed(2)}×` });
@@ -628,6 +629,11 @@ function init() {
   $('shuffleBtn').addEventListener('click', shuffle);
   $('exportBtn').addEventListener('click', () => exportPNG('sheet'));
   $('chooseBtn').addEventListener('click', () => $('fileInput').click());
+  $('openBtn').addEventListener('click', () => $('fileInput').click());
+  document.addEventListener('paste', (e) => {
+    const f = [...(e.clipboardData?.files || [])].find((x) => x.type.startsWith('image/'));
+    if (f) { e.preventDefault(); loadBlob(f); }
+  });
   $('sampleBtn').addEventListener('click', async () => loadBlob(await testImage()));
   $('fileInput').addEventListener('change', (e) => {
     if (e.target.files[0]) loadBlob(e.target.files[0]);
@@ -681,6 +687,7 @@ function init() {
   document.addEventListener('keydown', (e) => {
     if (e.target.matches('input, textarea')) return;
     if (e.key === 'r' || e.key === 'R') shuffle();
+    if (e.key === 'o' || e.key === 'O') $('fileInput').click();
     if (e.key === 'Escape') $('popover')._close?.();
   });
 

@@ -100,6 +100,7 @@ channel's actual ink, so nothing competes with the print you're judging.
 
 | Control | What it does |
 |---|---|
+| **Open photo** (<kbd>O</kbd>) | Loads a new photo. You can also drop an image file on the sheet, or paste one from the clipboard. |
 | **Auto-pick** | Searches the ink library for the set that reproduces *this* photo on *this* paper most closely. It measures reproduction error, so it picks a process-like triad for one image and two flat colours for another. |
 | **Screen angle dial** | Drag it. Hold <kbd>Shift</kbd> to snap to 7.5°, or use the arrow keys. |
 | **Shuffle** (<kbd>R</kbd>) | Keeps your photo, reprints it with new inks, screen and frame. |
